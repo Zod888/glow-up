@@ -205,6 +205,27 @@ h2{font-family:var(--display);font-size:19px;font-weight:700;margin:0;text-wrap:
 .rrow select:focus-visible{outline:3px solid var(--glow);outline-offset:1px}
 a.btn{text-decoration:none}
 
+/* Ecranul de start */
+.onb{position:fixed;inset:0;z-index:35;background:var(--phone);overflow-y:auto;display:flex;justify-content:center;
+  padding:calc(24px + env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px))}
+.onb[hidden]{display:none!important}
+.onbp{width:100%;max-width:400px;display:flex;flex-direction:column;gap:16px;height:max-content}
+.onbp[hidden]{display:none!important}
+.onbp h2{font-size:22px}
+.onb .fields{grid-template-columns:1fr 1fr}
+.onb .opts.col{flex-direction:column}
+.onb .opts.col .opt{border-radius:14px;text-align:left}
+.onb .opts.col .opt small{display:block;font-weight:500;opacity:.75}
+.onberr{color:var(--glow);font-weight:800;margin:0}
+.onberr:empty{display:none}
+.onbline{margin:0;line-height:1.5}
+.onbline b{color:var(--glow)}
+.enlist{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.enlist p{margin:0;line-height:1.45}
+.enlist b{color:var(--glow)}
+.profrow{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.profrow p{margin:0;line-height:1.45}
+
 /* Nivel și misiune */
 .lvl{display:flex;flex-direction:column;gap:6px;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--line)}
 .lvltop{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
@@ -378,6 +399,11 @@ input[type=date]{-webkit-appearance:none;appearance:none;min-height:44px}
         <small class="sub" id="kcalNote" style="display:block;margin-top:10px"></small>
       </div>
 
+      <div class="card" id="enCard" hidden>
+        <div class="label">Ce înseamnă efortul tău</div>
+        <div class="enlist" id="enText"></div>
+      </div>
+
       <div>
         <div class="label" style="margin-bottom:8px">Obiceiurile de azi</div>
         <div class="tasks" id="tasks"></div>
@@ -502,16 +528,20 @@ input[type=date]{-webkit-appearance:none;appearance:none;min-height:44px}
         <p class="sub">Ținta de azi, împărțită în serii ușoare.</p>
       </div>
       <div class="card">
+        <div class="label">Profilul tău</div>
+        <div class="profrow" style="margin-top:8px"><p id="profText"></p><button class="btn small" id="profEdit" type="button">Modifică</button></div>
+      </div>
+      <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>Antrenament fără echipament</b><span class="chip">acasă</span></div>
         <div id="planEx"></div>
         <small class="sub">Pauză 1 minut între serii. Le poți împărți și pe tot parcursul zilei.</small>
       </div>
       <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>Mesele de azi · 2.300 kcal</b><span class="chip">exemplu</span></div>
-        <div class="meal"><span>Mic dejun<br><small>Ovăz, iaurt grecesc, banană</small></span><small class="num">540 kcal</small></div>
-        <div class="meal"><span>Prânz<br><small>Piept de pui, orez, salată</small></span><small class="num">780 kcal</small></div>
-        <div class="meal"><span>Gustare<br><small>Brânză de vaci, nuci</small></span><small class="num">310 kcal</small></div>
-        <div class="meal"><span>Cină<br><small>Omletă din 3 ouă, legume</small></span><small class="num">520 kcal</small></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b id="mealTitle">Mesele de azi · 2.300 kcal</b><span class="chip">exemplu</span></div>
+        <div class="meal"><span>Mic dejun<br><small>Ovăz, iaurt grecesc, banană</small></span><small class="num mealk" data-k="540">540 kcal</small></div>
+        <div class="meal"><span>Prânz<br><small>Piept de pui, orez, salată</small></span><small class="num mealk" data-k="780">780 kcal</small></div>
+        <div class="meal"><span>Gustare<br><small>Brânză de vaci, nuci</small></span><small class="num mealk" data-k="310">310 kcal</small></div>
+        <div class="meal"><span>Cină<br><small>Omletă din 3 ouă, legume</small></span><small class="num mealk" data-k="520">520 kcal</small></div>
       </div>
       <div class="card pro">
         <h2>Glow Up Pro</h2>
@@ -547,6 +577,49 @@ input[type=date]{-webkit-appearance:none;appearance:none;min-height:44px}
   </nav>
 </div>
 <div class="toast" id="toast"></div>
+<div class="onb" id="onb" hidden role="dialog" aria-modal="true" aria-labelledby="onbT">
+  <form class="onbp" id="onbForm" novalidate>
+    <div class="logo">Glow <span>Up</span></div>
+    <div>
+      <h2 id="onbT">Hai să te cunoaștem</h2>
+      <p class="sub">Din datele astea calculăm cât arde corpul tău și ce înseamnă efortul tău când vrei să slăbești.</p>
+    </div>
+    <div class="grp"><span class="gl">Sex</span>
+      <div class="opts" id="pSex">
+        <button type="button" class="opt" data-v="m" aria-pressed="false">Bărbat</button>
+        <button type="button" class="opt" data-v="f" aria-pressed="false">Femeie</button>
+      </div>
+      <small class="sub">Intră în formula metabolismului.</small>
+    </div>
+    <div class="fields">
+      <label>Vârstă (ani)<input type="text" id="pAge" inputmode="numeric" autocomplete="off" placeholder="30"></label>
+      <label>Înălțime (cm)<input type="text" id="pH" inputmode="numeric" autocomplete="off" placeholder="178"></label>
+      <label>Greutate (kg)<input type="text" id="pKg" inputmode="decimal" autocomplete="off" placeholder="88,4"></label>
+      <label>Ținta (kg, opțional)<input type="text" id="pGoal" inputmode="decimal" autocomplete="off" placeholder="80"></label>
+    </div>
+    <div class="grp"><span class="gl">Cât te miști în mod normal</span>
+      <div class="opts col" id="pAct">
+        <button type="button" class="opt" data-v="1.2" aria-pressed="false">Puțin<small>Stai mult jos, fără sport</small></button>
+        <button type="button" class="opt" data-v="1.375" aria-pressed="false">Ușor<small>Sport de 1–3 ori pe săptămână</small></button>
+        <button type="button" class="opt" data-v="1.55" aria-pressed="false">Moderat<small>Sport de 3–5 ori pe săptămână</small></button>
+        <button type="button" class="opt" data-v="1.725" aria-pressed="false">Mult<small>Sport aproape zilnic sau muncă fizică</small></button>
+      </div>
+    </div>
+    <p class="onberr" id="onbErr" role="alert"></p>
+    <button class="btn primary" type="submit">Calculează</button>
+  </form>
+  <div class="onbp" id="onbRes" hidden>
+    <div class="logo">Glow <span>Up</span></div>
+    <h2>Cifrele tale</h2>
+    <div class="stats4" id="resStats"></div>
+    <div id="resText" class="enlist"></div>
+    <small class="sub">Sunt estimări. Dacă ai o afecțiune sau ești însărcinată, întreabă medicul înainte să ții o dietă.</small>
+    <div class="uploads">
+      <button class="btn" id="resBack" type="button">Modifică</button>
+      <button class="btn primary" id="resGo" type="button">Începem</button>
+    </div>
+  </div>
+</div>
 <div class="qov" id="qov" hidden role="dialog" aria-modal="true" aria-labelledby="qTitle">
   <div class="qpanel" id="qpanel">
     <div class="qhead"><span class="qbadge">!</span><span id="qKicker"></span></div>
@@ -903,6 +976,8 @@ function renderExtras(kg,wk){
     const plan=ex.u==='min'?`${Math.ceil(t)} × ${fmt(t/Math.ceil(t),t%Math.ceil(t)?1:0)} min`:(()=>{const s=Math.max(1,Math.ceil(t/25));return `${s} × ${Math.ceil(t/s)}`})();
     return `<div class="ex"><span>${ex.n}${done>=t?' <span class="chip">gata</span>':''}</span><small class="num">${plan}</small></div>`}).join('');
 
+  renderEnergy(kg,wk);
+
   // clasament: tu cu caloriile reale, prietenii exemplu
   const P=[['Ioana','#e85d9a',640],['Vlad','#6b4de6',520],['Maria','#16a37a',410],['Radu','#3b82c4',350],['Tu','#ff7a45',Math.round(wk)]].sort((a,b)=>b[2]-a[2]);
   $('#board').innerHTML=P.map(([nm,c,v],i)=>`<div class="row${nm==='Tu'?' me':''}"><span class="rank num">${i+1}</span><span class="av" style="background:${c}">${nm[0]}</span><span>${nm}</span><span class="num">${v}</span></div>`).join('');
@@ -1036,10 +1111,97 @@ function showIntro(){
 setInterval(()=>{const n=new Date(),m=new Date(n);m.setHours(24,0,0,0);const s=Math.floor((m-n)/1000);
   $('#qTimer').textContent=`se resetează în ${String(s/3600|0).padStart(2,'0')}:${String(s/60%60|0).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`},1000);
 
+// Profil: metabolism Mifflin-St Jeor, necesar = metabolism × activitate; 7.700 kcal ≈ 1 kg de grăsime
+const PKEY='glowup.profile.v1', KCAL_KG=7700;
+const ACT_NAMES={'1.2':'puțină','1.375':'ușoară','1.55':'moderată','1.725':'multă'};
+var PROF=null;
+try{const s=JSON.parse(localStorage.getItem(PKEY));if(s&&s.age&&s.h&&s.sex&&s.act)PROF=s}catch(e){}
+function energy(p,kg){
+  const bmr=Math.round(10*kg+6.25*p.h-5*p.age+(p.sex==='m'?5:-161));
+  const tdee=Math.round(bmr*p.act);
+  const bmi=kg/((p.h/100)**2);
+  const floor=p.sex==='m'?1500:1200;
+  // sub 18 ani sau cu greutate deja mică nu propunem deficit
+  const canCut=p.age>=18&&bmi>=18.5;
+  const target=canCut?Math.max(floor,tdee-500):tdee;
+  const deficit=tdee-target;
+  return {bmr,tdee,bmi,target,deficit,canCut,weekly:deficit*7/KCAL_KG};
+}
+const grams=k=>Math.round(k/KCAL_KG*1000);
+const nr=v=>Math.round(v).toLocaleString('ro-RO');
+const planKcal=kg=>EX.reduce((a,ex)=>a+kcalOf(ex,XS.targets[ex.k],kg),0);
+function renderEnergy(kg,wk){
+  const card=$('#enCard');card.hidden=!PROF;
+  if(!PROF){$('#profText').textContent='Nu ai completat încă datele.';return}
+  const e=energy(PROF,kg),kc=dayKcal(iso(new Date()),kg);
+  const lines=[`Azi ai ars din exerciții aproximativ <b>${nr(kc)} kcal</b>, adică <b>${grams(kc)} g</b> de grăsime.`,
+    `În ultimele 7 zile: <b>${nr(wk)} kcal</b>, adică <b>${fmt(wk/KCAL_KG,2)} kg</b>.`,
+    `Corpul tău arde <b>${nr(e.bmr)} kcal</b> pe zi în repaus și are nevoie de <b>${nr(e.tdee)} kcal</b> cu activitatea obișnuită.`];
+  if(e.canCut&&e.deficit>0){
+    const pct=Math.min(100,Math.round(kc/e.deficit*100));
+    lines.push(`Ca să slăbești ${fmt(e.weekly,2)} kg pe săptămână, mănânci cam <b>${nr(e.target)} kcal</b> pe zi. Exercițiile de azi echivalează cu ${pct}% din deficitul de ${nr(e.deficit)} kcal.`);
+  }else lines.push('Planul de slăbit e doar pentru adulți cu greutate normală sau peste. Dacă vrei să slăbești, vorbește întâi cu un medic.');
+  $('#enText').innerHTML=lines.map(l=>`<p>${l}</p>`).join('');
+  $('#profText').textContent=`${PROF.sex==='m'?'Bărbat':'Femeie'}, ${PROF.age} de ani, ${PROF.h} cm, activitate ${ACT_NAMES[PROF.act]}. Necesar: ${nr(e.tdee)} kcal pe zi.`;
+  const sum=[540,780,310,520].reduce((a,b)=>a+b,0);
+  $('#mealTitle').textContent=`Mesele de azi · ${nr(e.target)} kcal`;
+  document.querySelectorAll('.mealk').forEach(m=>{m.textContent=`${nr(Math.round(m.dataset.k/sum*e.target/10)*10)} kcal`});
+}
+const onbSel={sex:null,act:null};
+function pickOpt(box,key,val){onbSel[key]=val;box.querySelectorAll('.opt').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===val))}
+[['#pSex','sex'],['#pAct','act']].forEach(([s,key])=>{const box=$(s);
+  box.querySelectorAll('.opt').forEach(b=>b.onclick=()=>pickOpt(box,key,b.dataset.v))});
+function openOnb(){
+  const last=WS.entries.slice().sort((a,b)=>a.d<b.d?-1:1).pop();
+  if(PROF){$('#pAge').value=PROF.age;$('#pH').value=PROF.h;pickOpt($('#pSex'),'sex',PROF.sex);pickOpt($('#pAct'),'act',String(PROF.act))}
+  if(last)$('#pKg').value=String(last.kg).replace('.',',');
+  if(WS.goal)$('#pGoal').value=String(WS.goal).replace('.',',');
+  $('#onbErr').textContent='';$('#onbForm').hidden=false;$('#onbRes').hidden=true;$('#onb').hidden=false;$('#onb').scrollTop=0;
+}
+$('#onbForm').onsubmit=e=>{
+  e.preventDefault();
+  const err=t=>{$('#onbErr').textContent=t};
+  const age=Math.round(numOf($('#pAge'))),h=Math.round(numOf($('#pH'))),kg=numOf($('#pKg')),goalRaw=$('#pGoal').value.trim(),goal=goalRaw?numOf($('#pGoal')):null;
+  if(!onbSel.sex)return err('Alege sexul.');
+  if(!(age>=14&&age<=100))return err('Vârsta trebuie să fie între 14 și 100 de ani.');
+  if(!(h>=120&&h<=230))return err('Scrie înălțimea în centimetri, de exemplu 178.');
+  if(!(kg>=30&&kg<=300))return err('Scrie greutatea în kilograme, de exemplu 88,4.');
+  if(goalRaw&&!(goal>=30&&goal<=300))return err('Scrie ținta în kilograme, de exemplu 80.');
+  const minKg=Math.ceil(18.5*(h/100)**2);
+  if(goal&&goal<minKg&&goal<kg)return err(`Ținta e sub greutatea sănătoasă pentru înălțimea ta. Alege minimum ${minKg} kg.`);
+  if(!onbSel.act)return err('Alege cât te miști în mod normal.');
+  err('');
+  PROF={sex:onbSel.sex,age,h,act:+onbSel.act};
+  try{localStorage.setItem(PKEY,JSON.stringify(PROF))}catch(x){}
+  const td=iso(new Date()),old=WS.entries.find(x=>x.d===td),last=WS.entries.slice().sort((a,b)=>a.d<b.d?-1:1).pop();
+  const rkg=+kg.toFixed(1);
+  // cântărirea intră în jurnal doar dacă e o valoare nouă
+  if(!last||last.kg!==rkg)WS.entries=WS.entries.filter(x=>x.d!==td).concat({d:td,kg:rkg,waist:old?old.waist:null});
+  WS.goal=goal?+goal.toFixed(1):null;saveW();renderWeight();
+  const en=energy(PROF,rkg),pk=planKcal(rkg);
+  $('#resStats').innerHTML=[
+    ['Metabolism',nr(en.bmr)+' kcal','pe zi, în repaus'],
+    ['Necesar',nr(en.tdee)+' kcal','cu activitatea ta'],
+    ['Pentru slăbit',en.canCut&&en.deficit>0?nr(en.target)+' kcal':'–','pe zi'],
+    ['IMC',age>=18?fmt(en.bmi):'–',age>=18?(en.bmi<18.5?'subponderal':en.bmi<25?'normal':en.bmi<30?'supraponderal':'obezitate'):'pentru adulți'],
+  ].map(([a,b,c])=>`<div class="stat"><span class="label">${a}</span><b class="num">${b}</b><small>${c}</small></div>`).join('');
+  const t=[`Misiunea zilnică arde cam <b>${nr(pk)} kcal</b>, adică <b>${grams(pk)} g</b> de grăsime. Făcută 7 zile, înseamnă <b>${fmt(pk*7/KCAL_KG,2)} kg</b>.`];
+  if(en.canCut&&en.deficit>0){
+    t.push(`Cu ${nr(en.target)} kcal pe zi slăbești cam <b>${fmt(en.weekly,2)} kg pe săptămână</b> din alimentație. Mișcarea se adună peste asta și te ajută să păstrezi mușchii.`);
+    const tot=en.weekly+pk*7/KCAL_KG;
+    if(goal&&goal<rkg)t.push(`De la ${fmt(rkg)} la ${fmt(goal)} kg: cam <b>${Math.ceil((rkg-goal)/tot)} săptămâni</b>.`);
+  }else t.push('Nu propunem un plan de slăbit: e doar pentru adulți cu greutate normală sau peste. Dacă vrei să slăbești, vorbește întâi cu un medic.');
+  $('#resText').innerHTML=t.map(l=>`<p class="onbline">${l}</p>`).join('');
+  $('#onbForm').hidden=true;$('#onbRes').hidden=false;$('#onb').scrollTop=0;
+};
+$('#resBack').onclick=()=>{$('#onbRes').hidden=true;$('#onbForm').hidden=false};
+$('#resGo').onclick=()=>{$('#onb').hidden=true;showIntro()};
+$('#profEdit').onclick=openOnb;
+
 $('#nudgeGo').onclick=()=>{$('#exList').scrollIntoView({behavior:'smooth',block:'start'})};
 setInterval(()=>{if(!document.hidden)renderEx()},60000);
 exReady=true;renderEx();
-showIntro();
+if(PROF)showIntro();else openOnb();
 
 // Provocări: le creezi tu, le bifezi zi de zi; cele cu exerciții se bifează singure când atingi numărul din jurnal
 var chReady=false;
@@ -1135,7 +1297,7 @@ document.querySelectorAll('.price').forEach(b=>b.onclick=()=>{document.querySele
 $('#trial').onclick=()=>toast('Demo: aici ar porni perioada gratuită');
 
 // Backup: toate datele într-un singur fișier, trimis prin meniul de partajare al telefonului
-const BK=['glowup.weights.v1','glowup.ex.v1','glowup.ch.v1'];
+const BK=['glowup.weights.v1','glowup.ex.v1','glowup.ch.v1','glowup.profile.v1'];
 $('#bkSave').onclick=async()=>{
   const data={app:'glowup',date:iso(new Date()),keys:{}};
   BK.forEach(k=>{try{const v=localStorage.getItem(k);if(v)data.keys[k]=JSON.parse(v)}catch(e){}});
