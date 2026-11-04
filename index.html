@@ -205,6 +205,32 @@ h2{font-family:var(--display);font-size:19px;font-weight:700;margin:0;text-wrap:
 .rrow select:focus-visible{outline:3px solid var(--glow);outline-offset:1px}
 a.btn{text-decoration:none}
 
+/* Antrenamente */
+.wk{display:flex;flex-direction:column;gap:14px}
+.wkbody{display:flex;flex-direction:column;gap:12px}
+.wkbody:empty{display:none}
+.wksum{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.wksum b{font-family:var(--display);font-size:16px}
+.mv{border-top:1px solid var(--line);padding:10px 0}
+.label+.mv{border-top:0}
+.mvrow{display:grid;grid-template-columns:30px 62px 1fr;gap:10px;align-items:center}
+.mvtick{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);background:none;cursor:pointer;padding:0;display:grid;place-items:center}
+.mvtick[aria-pressed="true"]{background:var(--mint);border-color:var(--mint)}
+.mvtick[aria-pressed="true"]::after{content:"";width:11px;height:6px;border:solid #fff;border-width:0 0 2.5px 2.5px;transform:rotate(-45deg) translate(1px,-1px)}
+.mvfig{width:62px;height:62px;border-radius:12px;background:var(--soft);display:block}
+.mvinfo{background:none;border:0;padding:0;font:inherit;color:inherit;text-align:left;cursor:pointer;min-width:0}
+.mvinfo b{display:block;line-height:1.3}
+.mvinfo small{color:var(--muted);display:block}
+.mvinfo em{font-style:normal;color:var(--glow);font-size:12px;font-weight:800}
+.mvtick:focus-visible,.mvinfo:focus-visible{outline:3px solid var(--glow);outline-offset:2px}
+.mvopen{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.mvbig{width:100%;max-width:220px;aspect-ratio:1;align-self:center;border-radius:18px;background:var(--soft);display:block}
+.mvopen ol{margin:0;padding-left:20px;line-height:1.5}
+.mvopen .warn{color:var(--muted);font-size:13px;line-height:1.4;margin:0}
+.mvmin{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px;font-weight:700;color:var(--muted)}
+.mvmin input{width:80px;font:inherit;color:var(--ink);background:var(--phone);border:1px solid var(--line);border-radius:12px;padding:8px 10px}
+.btn:disabled{opacity:.5;cursor:default}
+
 /* Ecranul de start */
 .onb{position:fixed;inset:0;z-index:35;background:var(--phone);overflow-y:auto;display:flex;justify-content:center;
   padding:calc(24px + env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px))}
@@ -376,6 +402,8 @@ input[type=date]{-webkit-appearance:none;appearance:none;min-height:44px}
         </div>
       </div>
 
+      <button class="task" id="todayPick" type="button"><span class="t"><b id="todayPickT">Ce faci azi?</b><small id="todayPickS">Forță, yoga, plimbare sau alergare</small></span><span class="pts">›</span></button>
+
       <div class="card tip">
         <div class="ai">Glo</div>
         <p id="tipText"></p>
@@ -525,16 +553,16 @@ input[type=date]{-webkit-appearance:none;appearance:none;min-height:44px}
     <section class="view" id="v-plan" hidden>
       <div>
         <h2>Planul tău</h2>
-        <p class="sub">Ținta de azi, împărțită în serii ușoare.</p>
+        <p class="sub">Alege ce vrei să faci azi și cât de greu.</p>
       </div>
+      <div class="card wk">
+        <div class="grp"><span class="gl">Ce faci azi</span><div class="opts" id="wkStyle"></div></div>
+        <div class="grp"><span class="gl">Cât de greu</span><div class="opts" id="wkEffort"></div></div>
+      </div>
+      <div id="wkBody" class="wkbody"></div>
       <div class="card">
         <div class="label">Profilul tău</div>
         <div class="profrow" style="margin-top:8px"><p id="profText"></p><button class="btn small" id="profEdit" type="button">Modifică</button></div>
-      </div>
-      <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b>Antrenament fără echipament</b><span class="chip">acasă</span></div>
-        <div id="planEx"></div>
-        <small class="sub">Pauză 1 minut între serii. Le poți împărți și pe tot parcursul zilei.</small>
       </div>
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b id="mealTitle">Mesele de azi · 2.300 kcal</b><span class="chip">exemplu</span></div>
@@ -795,13 +823,14 @@ let XS={days:{}};
 try{const s=JSON.parse(localStorage.getItem(EXKEY));if(s&&s.days)XS=s}catch(e){}
 XS.targets=Object.assign(Object.fromEntries(EX.map(e=>[e.k,e.t])),XS.targets||{});
 // progresul unei zile = media exercițiilor, fiecare plafonat la ținta lui
-const dayProg=d=>EX.reduce((a,ex)=>a+Math.min(1,((XS.days[d]||{})[ex.k]||0)/XS.targets[ex.k]),0)/EX.length;
+const dayProg=d=>(XS.days[d]||{}).doneSession?1:EX.reduce((a,ex)=>a+Math.min(1,((XS.days[d]||{})[ex.k]||0)/XS.targets[ex.k]),0)/EX.length;
 // săptămâna = luni–duminică; ținta e 7 zile complete
 function weekProg(){const n=new Date(),dow=(n.getDay()+6)%7;let s=0;
   for(let i=0;i<=dow;i++){const d=new Date(n);d.setDate(n.getDate()-i);s+=dayProg(iso(d))}return s/7}
 const saveX=()=>{try{localStorage.setItem(EXKEY,JSON.stringify(XS))}catch(e){}};
 const kcalOf=(ex,amt,kg)=>ex.met*3.5*kg/200*(ex.u==='min'?amt:amt/ex.rate);
-const dayKcal=(d,kg)=>EX.reduce((a,ex)=>a+kcalOf(ex,(XS.days[d]||{})[ex.k]||0,kg),0);
+const dayKcal=(d,kg)=>EX.reduce((a,ex)=>a+kcalOf(ex,(XS.days[d]||{})[ex.k]||0,kg),0)
+  +((XS.days[d]||{}).sessions||[]).reduce((a,s)=>a+s.met60*kg,0);
 const amtTxt=(ex,v)=>ex.u==='min'?`${fmt(v,v%1?1:0)} min`:`${Math.round(v)}`;
 
 function addEx(k,amt){
@@ -932,7 +961,7 @@ function renderExtras(kg,wk){
 
   // sfatul lui Glo: ce a rămas cel mai mult din ținta de azi
   const T=XS.days[td]||{};
-  const left=EX.map(ex=>({ex,rem:Math.max(0,XS.targets[ex.k]-(T[ex.k]||0)),f:(T[ex.k]||0)/XS.targets[ex.k]})).filter(o=>o.rem>0).sort((a,b)=>a.f-b.f);
+  const left=EX.map(ex=>({ex,rem:Math.max(0,XS.targets[ex.k]-(T[ex.k]||0)),f:(T[ex.k]||0)/XS.targets[ex.k]})).filter(o=>o.rem>0&&!T.doneSession).sort((a,b)=>a.f-b.f);
   let tip;
   const de=n=>(n%100===0&&n>0)||n%100>=20?'de ':'';
   if(!left.length) tip=s>1?`Zi completă! Ești la ${s} zile la rând. Mâine ținem seria.`:'Zi completă! E prima zi din serie, mâine o continuăm.';
@@ -970,11 +999,6 @@ function renderExtras(kg,wk){
   $('#actChart').innerHTML=`<line x1="${L}" x2="${Wc-R}" y1="${Y(1)}" y2="${Y(1)}" stroke="var(--mint)" stroke-dasharray="4 3"/><text x="${Wc-R}" y="${Y(1)-4}" font-size="10" text-anchor="end" fill="var(--mint)" font-weight="800">ținta zilei</text>`+bars;
   $('#weekTotals').innerHTML=EX.map(ex=>{let t=0;for(let i=0;i<7;i++)t+=(XS.days[addDaysX(td,-i)]||{})[ex.k]||0;
     return `<div class="stat"><span class="label">${ex.n}</span><b class="num">${ex.u==='min'?fmt(t,t%1?1:0)+' min':Math.round(t)}</b><small>în 7 zile</small></div>`}).join('');
-
-  // plan: ținta zilei împărțită în serii
-  $('#planEx').innerHTML=EX.map(ex=>{const t=XS.targets[ex.k],done=T[ex.k]||0;
-    const plan=ex.u==='min'?`${Math.ceil(t)} × ${fmt(t/Math.ceil(t),t%Math.ceil(t)?1:0)} min`:(()=>{const s=Math.max(1,Math.ceil(t/25));return `${s} × ${Math.ceil(t/s)}`})();
-    return `<div class="ex"><span>${ex.n}${done>=t?' <span class="chip">gata</span>':''}</span><small class="num">${plan}</small></div>`}).join('');
 
   renderEnergy(kg,wk);
 
@@ -1082,7 +1106,7 @@ function showRewards(){
     questDone=false;
     const pct=Math.round(st.into/st.need*100);
     qSteps.push({kicker:'MISIUNE ÎNDEPLINITĂ',title:'Misiunea zilnică',
-      body:EX.map(e=>`<div class="qline"><span>${e.n}</span><span class="ok num">${amtTxt(e,T[e.k]||0)} / ${amtTxt(e,XS.targets[e.k])} ✓</span></div>`).join('')+
+      body:(T.doneSession?(T.sessions||[]).map(s=>`<div class="qline"><span>${s.name}</span><span class="ok num">${s.eff} ✓</span></div>`):EX.map(e=>`<div class="qline"><span>${e.n}</span><span class="ok num">${amtTxt(e,T[e.k]||0)} / ${amtTxt(e,XS.targets[e.k])} ✓</span></div>`)).join('')+
         `<div class="qxp num">+${st.todayXP} XP</div><div class="qbar"><i id="qxpbar"></i></div>`+
         `<p class="qnote">Serie: ${st.streak} ${st.streak===1?'zi':'zile'} la rând${st.streak>1?` · bonus +${Math.min(st.streak,7)*10} XP`:''}. Glo e mândru de tine.</p>`,
       after:()=>{const b=$('#qxpbar');if(b)b.style.width=(pendingLevel?100:pct)+'%';celebrate('Wow, astăzi ai făcut o treabă bună!')}});
@@ -1104,12 +1128,187 @@ function showIntro(){
   const st=xpState(),T=XS.days[td]||{};
   qSteps.unshift({kicker:'MISIUNE NOUĂ',title:'Misiunea zilnică',btn:'Accept',
     body:EX.map(e=>`<div class="qline"><span>${e.n}</span><span class="num">${amtTxt(e,T[e.k]||0)} / ${amtTxt(e,XS.targets[e.k])}</span></div>`).join('')+
-      `<p class="qnote">Termen: azi, până la miezul nopții.<br>Recompensă: +100 XP și bonus de serie +${Math.min(st.prev+1,7)*10} XP${st.prev?` (ești la ${st.prev} ${st.prev===1?'zi':'zile'} la rând)`:''}.<br>Ești la nivelul ${st.lvl} (${titleOf(st.lvl)}).</p>`,
+      `<p class="qnote">Termen: azi, până la miezul nopții.<br>O poți înlocui cu un antrenament ales în Plan: yoga, plimbare, alergare sau forță.<br>Recompensă: +100 XP și bonus de serie +${Math.min(st.prev+1,7)*10} XP${st.prev?` (ești la ${st.prev} ${st.prev===1?'zi':'zile'} la rând)`:''}.<br>Ești la nivelul ${st.lvl} (${titleOf(st.lvl)}).</p>`,
     onDone:()=>{XS.questSeen=td;saveX()}});
   if($('#qov').hidden)nextStep();
 }
 setInterval(()=>{const n=new Date(),m=new Date(n);m.setHours(24,0,0,0);const s=Math.floor((m-n)/1000);
   $('#qTimer').textContent=`se resetează în ${String(s/3600|0).padStart(2,'0')}:${String(s/60%60|0).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`},1000);
+
+// Figurine animate: fiecare mișcare are 2–4 poze (coordonate într-un pătrat de 100×100, solul la y=92), interpolate în buclă
+const P=(h,s,p,e,w,k,f,o={})=>({h,s,p,e,w,k,f,...o});
+const STAND=P([50,16],[50,28],[50,56],[52,42],[54,56],[50,74],[50,92]);
+const MOVES={
+  march:{n:'Marș pe loc',d:700,met:3.5,how:['Stai drept, cu privirea înainte.','Ridică genunchii pe rând, până la nivelul șoldului.','Mișcă brațele opus picioarelor.'],poses:[
+    P([50,16],[50,28],[50,56],[58,40],[64,30],[60,62],[58,78],{e2:[42,42],w2:[42,56],k2:[50,74],f2:[50,92]}),
+    P([50,16],[50,28],[50,56],[42,42],[42,56],[50,74],[50,92],{e2:[58,40],w2:[64,30],k2:[60,62],f2:[58,78]})]},
+  circles:{n:'Rotiri de brațe',d:500,met:3,how:['Stai cu picioarele la lățimea umerilor.','Întinde brațele în lateral.','Fă cercuri largi, controlate, apoi schimbă sensul.'],poses:[
+    P([50,16],[50,28],[50,56],[38,30],[26,30],[46,74],[44,92],{e2:[62,30],w2:[74,30],k2:[54,74],f2:[56,92]}),
+    P([50,16],[50,28],[50,56],[42,18],[36,8],[46,74],[44,92],{e2:[58,18],w2:[64,8],k2:[54,74],f2:[56,92]}),
+    P([50,16],[50,28],[50,56],[38,30],[26,30],[46,74],[44,92],{e2:[62,30],w2:[74,30],k2:[54,74],f2:[56,92]}),
+    P([50,16],[50,28],[50,56],[42,42],[36,54],[46,74],[44,92],{e2:[58,42],w2:[64,54],k2:[54,74],f2:[56,92]})]},
+  jacks:{n:'Sărituri cu depărtări',d:550,met:8,how:['Pornești cu picioarele lipite și brațele pe lângă corp.','Sari depărtând picioarele și ridicând brațele deasupra capului.','Revii sărind. Aterizează ușor, pe vârfuri.'],poses:[
+    P([50,16],[50,28],[50,56],[45,42],[43,56],[47,74],[45,92],{e2:[55,42],w2:[57,56],k2:[53,74],f2:[55,92]}),
+    P([50,14],[50,26],[50,52],[38,18],[32,6],[40,72],[30,92],{e2:[62,18],w2:[68,6],k2:[60,72],f2:[70,92]})]},
+  fold:{n:'Aplecări înainte',d:1500,met:2.5,how:['Stai cu picioarele la lățimea șoldurilor.','Apleacă-te din șold, cu spatele lung, spre vârfurile picioarelor.','Ridică-te încet. Genunchii pot rămâne puțin îndoiți.'],poses:[
+    STAND,P([70,64],[62,54],[46,56],[66,70],[66,86],[46,74],[46,92])]},
+  push:{n:'Flotări',k:'push',d:1300,met:8,rate:30,how:['Mâinile sub umeri, corpul drept de la cap la călcâie.','Coboară controlat până când pieptul e aproape de sol.','Împinge înapoi sus. Dacă e greu, sprijină-te pe genunchi.'],warn:'Nu lăsa șoldurile să cadă.',poses:[
+    P([82,46],[72,52],[42,71],[72,71],[72,90],[27,80],[12,90]),
+    P([82,74],[72,78],[42,84],[60,84],[72,90],[27,87],[12,90])]},
+  squat:{n:'Genuflexiuni',k:'squat',d:1500,met:5,rate:24,how:['Picioarele la lățimea umerilor, vârfurile puțin spre exterior.','Împinge șoldurile în spate și coboară ca pe un scaun.','Urcă împingând prin călcâie, cu pieptul sus.'],warn:'Genunchii merg în direcția vârfurilor.',poses:[
+    P([50,16],[50,28],[50,56],[60,34],[70,34],[52,74],[46,92]),
+    P([55,36],[52,47],[38,70],[62,50],[73,50],[58,72],[46,92])]},
+  crunch:{n:'Abdomene',k:'crunch',d:1200,met:3.8,rate:30,how:['Întins pe spate, genunchii îndoiți, tălpile pe sol.','Ridică umerii de la sol folosind abdomenul.','Coboară încet. Nu trage de gât cu mâinile.'],poses:[
+    P([15,80],[25,85],[50,86],[20,74],[14,74],[66,68],[80,90]),
+    P([27,62],[33,72],[50,86],[39,62],[31,58],[66,68],[80,90])]},
+  plank:{n:'Plank',k:'plank',d:2200,met:3.8,how:['Sprijin pe antebrațe, coatele sub umeri.','Ține corpul drept, cu abdomenul strâns.','Respiră normal și ține poziția.'],warn:'Oprește-te dacă șoldurile cad sau simți durere de spate.',poses:[
+    P([80,64],[70,70],[42,80],[70,90],[84,90],[27,85],[12,90]),
+    P([80,63],[70,69],[42,78],[70,90],[84,90],[27,84],[12,90])]},
+  lunge:{n:'Fandări',d:1500,met:5,rate:20,how:['Fă un pas mare înainte.','Coboară până când ambii genunchi sunt îndoiți la aproximativ 90°.','Împinge în piciorul din față și revino. Schimbă piciorul.'],poses:[
+    P([50,16],[50,28],[50,56],[42,42],[50,54],[56,74],[58,92],{k2:[44,74],f2:[42,92]}),
+    P([50,30],[50,42],[50,68],[42,56],[50,66],[68,70],[68,92],{k2:[38,90],f2:[22,90]})]},
+  bridge:{n:'Podul',d:1500,met:3.5,rate:20,how:['Întins pe spate, tălpile pe sol, genunchii îndoiți.','Ridică șoldurile până când corpul face o linie dreaptă.','Strânge fesierii sus, apoi coboară încet.'],poses:[
+    P([14,84],[24,86],[50,88],[34,88],[44,90],[64,68],[76,90]),
+    P([14,84],[24,86],[50,68],[34,88],[44,90],[64,64],[76,90])]},
+  superman:{n:'Extensii de spate',d:1600,met:3.5,rate:20,how:['Întins pe burtă, cu brațele întinse în față.','Ridică în același timp pieptul, brațele și picioarele.','Ține o secundă, apoi coboară controlat.'],warn:'Mișcare mică, fără smucituri.',poses:[
+    P([78,84],[68,86],[42,88],[80,86],[92,84],[26,88],[12,88]),
+    P([80,74],[70,78],[42,88],[82,72],[94,66],[26,82],[12,76])]},
+  climbers:{n:'Alpinistul',d:600,met:8,how:['Poziție de flotare, cu brațele întinse.','Adu un genunchi spre piept.','Schimbă picioarele într-un ritm susținut.'],poses:[
+    P([82,46],[72,52],[42,68],[72,71],[72,90],[56,78],[46,90],{k2:[26,79],f2:[12,90]}),
+    P([82,46],[72,52],[42,68],[72,71],[72,90],[26,79],[12,90],{k2:[56,78],f2:[46,90]})]},
+  cat:{n:'Pisica-vaca',d:3000,met:2.5,how:['În patru labe, mâinile sub umeri, genunchii sub șolduri.','La inspirație lasă burta în jos și ridică privirea.','La expirație rotunjește spatele și coboară capul.'],poses:[
+    P([84,54],[72,62],[30,66],[72,76],[72,90],[30,90],[14,90],{b:[50,70]}),
+    P([78,72],[72,62],[30,66],[72,76],[72,90],[30,90],[14,90],{b:[50,52]})]},
+  child:{n:'Poziția copilului',d:3500,met:2,how:['Stai în genunchi și așază-te pe călcâie.','Apleacă-te în față, cu brațele întinse.','Respiră adânc și relaxează umerii.'],poses:[
+    P([68,86],[60,84],[32,76],[72,88],[86,90],[46,90],[30,90],{b:[46,74]}),
+    P([68,86],[60,83],[32,74],[72,88],[86,90],[46,90],[30,90],{b:[46,71]})]},
+  dog:{n:'Câinele cu fața în jos',d:3000,met:3,how:['Din patru labe, ridică șoldurile spre tavan.','Împinge podul palmelor în sol, cu spatele lung.','Călcâiele merg spre sol, fără să forțezi.'],poses:[
+    P([66,74],[68,62],[46,36],[76,76],[84,90],[34,62],[22,90]),
+    P([66,73],[68,61],[46,33],[76,76],[84,90],[34,61],[22,90])]},
+  cobra:{n:'Cobra',d:3000,met:2.5,how:['Întins pe burtă, palmele sub umeri.','Ridică pieptul împingând ușor în palme.','Ține umerii jos, departe de urechi.'],poses:[
+    P([76,80],[66,84],[46,90],[68,88],[74,90],[28,90],[12,90]),
+    P([74,60],[66,70],[46,90],[70,82],[74,90],[28,90],[12,90])]},
+  warrior:{n:'Războinicul',d:3000,met:3,how:['Pas larg, piciorul din față îndoit, cel din spate întins.','Brațele întinse lateral, la nivelul umerilor.','Privește peste mâna din față și respiră.'],poses:[
+    P([50,18],[50,30],[50,58],[62,32],[76,32],[66,68],[70,92],{e2:[38,32],w2:[24,32],k2:[36,76],f2:[20,92]}),
+    P([50,20],[50,32],[50,60],[62,34],[76,34],[67,70],[70,92],{e2:[38,34],w2:[24,34],k2:[36,77],f2:[20,92]})]},
+  tree:{n:'Copacul',d:3000,met:2.5,how:['Stai într-un picior, cu privirea pe un punct fix.','Sprijină talpa pe gambă sau pe coapsă, niciodată pe genunchi.','Ridică brațele deasupra capului. Schimbă piciorul.'],poses:[
+    P([50,16],[50,28],[50,56],[44,18],[50,6],[50,74],[50,92],{e2:[56,18],w2:[50,6],k2:[64,66],f2:[52,72]}),
+    P([51,16],[51,28],[50,56],[45,18],[51,6],[50,74],[50,92],{e2:[57,18],w2:[51,6],k2:[64,66],f2:[52,72]})]},
+  walk:{n:'Plimbare',d:1000,met:3.5,how:['Mergi într-un ritm în care poți vorbi.','Ține spatele drept și umerii relaxați.','Lasă brațele să se miște natural.'],poses:[
+    P([52,16],[51,28],[50,56],[58,42],[62,54],[56,74],[64,92],{e2:[44,42],w2:[40,54],k2:[46,74],f2:[34,90]}),
+    P([52,16],[51,28],[50,56],[44,42],[40,54],[46,74],[34,90],{e2:[58,42],w2:[62,54],k2:[56,74],f2:[64,92]})]},
+  run:{n:'Alergare',d:620,met:8.3,how:['Începe încet. Ar trebui să poți rosti câteva cuvinte.','Pași scurți, cu piciorul sub corp.','Coatele îndoite, umerii relaxați.'],warn:'Dacă simți durere sau amețeală, treci la mers.',poses:[
+    P([57,14],[54,26],[46,52],[62,38],[70,30],[62,56],[58,76],{e2:[42,38],w2:[44,50],k2:[34,68],f2:[18,64]}),
+    P([57,18],[54,30],[46,56],[42,42],[44,54],[34,72],[18,68],{e2:[62,42],w2:[70,34],k2:[62,60],f2:[58,80]})]},
+};
+const POSE_KEYS=['h','s','b','p','e','w','k','f','e2','w2','k2','f2'];
+function poseAt(mv,t){
+  const n=mv.poses.length,u=(t/mv.d)%n,i=Math.floor(u),raw=u-i,f=(1-Math.cos(raw*Math.PI))/2;
+  const full=q=>({...q,b:q.b||[(q.s[0]+q.p[0])/2,(q.s[1]+q.p[1])/2],e2:q.e2||q.e,w2:q.w2||q.w,k2:q.k2||q.k,f2:q.f2||q.f});
+  const a=full(mv.poses[i]),c=full(mv.poses[(i+1)%n]),o={};
+  POSE_KEYS.forEach(k=>o[k]=[a[k][0]+(c[k][0]-a[k][0])*f,a[k][1]+(c[k][1]-a[k][1])*f]);
+  return o;
+}
+function drawFig(svg,t){
+  const mv=MOVES[svg.dataset.ex];if(!mv)return;
+  if(!svg._parts){
+    svg.setAttribute('viewBox','0 0 100 100');
+    svg.innerHTML=`<line x1="4" x2="96" y1="94" y2="94" stroke="var(--line)" stroke-width="2" stroke-linecap="round"/>`+
+      `<g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="5"><polyline class="b1" stroke="var(--muted)" opacity=".55"/><polyline class="b2" stroke="var(--muted)" opacity=".55"/><polyline class="t" stroke="var(--ink)"/><polyline class="f1" stroke="var(--ink)"/><polyline class="f2" stroke="var(--ink)"/></g><circle class="hd" r="6.5" fill="var(--glow)"/>`;
+    svg._parts={b1:svg.querySelector('.b1'),b2:svg.querySelector('.b2'),t:svg.querySelector('.t'),f1:svg.querySelector('.f1'),f2:svg.querySelector('.f2'),hd:svg.querySelector('.hd')};
+  }
+  const q=poseAt(mv,t),pts=(...a)=>a.map(x=>x[0].toFixed(1)+','+x[1].toFixed(1)).join(' '),z=svg._parts;
+  z.b1.setAttribute('points',pts(q.s,q.e2,q.w2));z.b2.setAttribute('points',pts(q.p,q.k2,q.f2));
+  z.t.setAttribute('points',pts(q.s,q.b,q.p));z.f1.setAttribute('points',pts(q.s,q.e,q.w));z.f2.setAttribute('points',pts(q.p,q.k,q.f));
+  z.hd.setAttribute('cx',q.h[0].toFixed(1));z.hd.setAttribute('cy',q.h[1].toFixed(1));
+}
+function figLoop(t){
+  if(!$('#v-plan').hidden&&!document.hidden){
+    const still=matchMedia('(prefers-reduced-motion: reduce)').matches;
+    document.querySelectorAll('svg[data-ex]').forEach(s=>{if(!still||!s._parts)drawFig(s,still?0:t)});
+  }
+  requestAnimationFrame(figLoop);
+}
+requestAnimationFrame(figLoop);
+
+// Antrenamente: stil + efort. Terminarea unui antrenament ales completează misiunea zilei.
+const EFFORTS={1:'Ușor',2:'Mediu',3:'Greu'};
+const W30=(...m)=>m.map(x=>({m:x,s:1,sec:30}));
+const WK={
+  force:{n:'Forță acasă',warm:W30('march','circles','jacks','fold'),main:{
+    1:[{m:'push',s:3,r:8},{m:'squat',s:3,r:12},{m:'crunch',s:3,r:12},{m:'plank',s:3,sec:20},{m:'bridge',s:2,r:12}],
+    2:[{m:'push',s:4,r:12},{m:'squat',s:4,r:20},{m:'crunch',s:4,r:20},{m:'plank',s:3,sec:40},{m:'lunge',s:3,r:10},{m:'superman',s:3,r:12}],
+    3:[{m:'push',s:5,r:20},{m:'squat',s:5,r:30},{m:'crunch',s:5,r:25},{m:'plank',s:4,sec:60},{m:'lunge',s:4,r:15},{m:'superman',s:4,r:15},{m:'climbers',s:4,sec:30}]}},
+  yoga:{n:'Yoga',warm:[{m:'cat',s:1,sec:60},{m:'circles',s:1,sec:30}],main:{
+    1:[{m:'child',s:1,sec:120},{m:'dog',s:2,sec:30},{m:'cobra',s:2,sec:30},{m:'tree',s:2,sec:30},{m:'child',s:1,sec:60}],
+    2:[{m:'dog',s:3,sec:45},{m:'cobra',s:3,sec:30},{m:'warrior',s:2,sec:45},{m:'tree',s:2,sec:45},{m:'bridge',s:2,sec:30},{m:'child',s:1,sec:120}],
+    3:[{m:'dog',s:4,sec:60},{m:'warrior',s:4,sec:60},{m:'cobra',s:3,sec:45},{m:'tree',s:3,sec:60},{m:'plank',s:3,sec:45},{m:'bridge',s:3,sec:45},{m:'child',s:1,sec:180}]}},
+  walk:{n:'Plimbare',warm:[],main:{1:[{m:'walk',min:20}],2:[{m:'walk',min:40}],3:[{m:'walk',min:60}]}},
+  run:{n:'Alergare',warm:[{m:'march',s:1,sec:120},{m:'circles',s:1,sec:30},{m:'fold',s:1,sec:30}],main:{1:[{m:'run',min:15}],2:[{m:'run',min:25}],3:[{m:'run',min:40}]}},
+};
+const moveMin=it=>it.min?it.min:it.sec?it.s*it.sec/60:it.s*it.r/MOVES[it.m].rate;
+const doseTxt=it=>it.min?`${it.min} min`:it.sec?(it.s>1?`${it.s} × ${it.sec} s`:it.sec>=120?`${it.sec/60} min`:`${it.sec} s`):`${it.s} × ${it.r}`;
+function wkState(){
+  const td=iso(new Date());
+  if(!XS.wk||XS.wk.d!==td)XS.wk={d:td,style:null,eff:2,done:{},mins:{},finished:false};
+  return XS.wk;
+}
+function wkItems(w){
+  const st=WK[w.style];if(!st)return [];
+  const main=st.main[w.eff].map((it,i)=>{const c={...it,id:'m'+i,sec2:0};if(c.min&&w.mins[c.id]>0)c.min=w.mins[c.id];return c});
+  return st.warm.map((it,i)=>({...it,id:'w'+i,warm:true})).concat(main);
+}
+let wkOpen=null;
+function renderWk(){
+  const w=wkState();
+  $('#wkStyle').innerHTML=Object.entries(WK).map(([k,v])=>`<button type="button" class="opt" data-k="${k}" aria-pressed="${w.style===k}">${v.n}</button>`).join('');
+  $('#wkEffort').innerHTML=Object.entries(EFFORTS).map(([k,v])=>`<button type="button" class="opt" data-k="${k}" aria-pressed="${+k===w.eff}">${v}</button>`).join('');
+  $('#wkStyle').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{if(w.finished&&w.style!==b.dataset.k)w.finished=false;w.style=b.dataset.k;w.done={};w.mins={};wkOpen=null;saveX();renderWk()});
+  $('#wkEffort').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{w.eff=+b.dataset.k;w.done={};w.mins={};w.finished=false;wkOpen=null;saveX();renderWk()});
+  const pick=$('#todayPickT');
+  const body=$('#wkBody');
+  if(!w.style){body.innerHTML='';pick.textContent='Ce faci azi?';$('#todayPickS').textContent='Forță, yoga, plimbare sau alergare';return}
+  const items=wkItems(w),kg=WSTATE.now,st=WK[w.style];
+  const mins=Math.round(items.reduce((a,i)=>a+moveMin(i),0)+(w.style==='force'||w.style==='yoga'?items.filter(i=>!i.warm).reduce((a,i)=>a+(i.s||1)-1,0):0));
+  const kcal=items.reduce((a,i)=>a+MOVES[i.m].met*3.5*kg/200*moveMin(i),0);
+  const main=items.filter(i=>!i.warm),left=main.filter(i=>!w.done[i.id]).length;
+  pick.textContent=`Azi: ${st.n}, ${EFFORTS[w.eff].toLowerCase()}`;
+  $('#todayPickS').textContent=w.finished?'Antrenament terminat':`${main.length-left} din ${main.length} exerciții bifate`;
+  const row=it=>{const mv=MOVES[it.m],open=wkOpen===it.id;
+    return `<div class="mv"><div class="mvrow">
+      <button type="button" class="mvtick" data-t="${it.id}" aria-pressed="${!!w.done[it.id]}" aria-label="Bifează ${mv.n}"></button>
+      <svg class="mvfig" data-ex="${it.m}" aria-hidden="true"></svg>
+      <button type="button" class="mvinfo" data-o="${it.id}" aria-expanded="${open}"><b>${mv.n}</b><small class="num">${doseTxt(it)}</small><em>${open?'Ascunde':'Cum se face'}</em></button>
+    </div>${it.min?`<label class="mvmin">Minute<input type="text" inputmode="numeric" data-min="${it.id}" value="${it.min}" autocomplete="off"></label>`:''}
+    ${open?`<div class="mvopen"><svg class="mvbig" data-ex="${it.m}" role="img" aria-label="Animație: ${mv.n}"></svg><ol>${mv.how.map(h=>`<li>${h}</li>`).join('')}</ol>${mv.warn?`<p class="warn">${mv.warn}</p>`:''}</div>`:''}</div>`};
+  const warm=items.filter(i=>i.warm);
+  body.innerHTML=`<div class="card"><div class="wksum"><b>${st.n} · ${EFFORTS[w.eff]}</b><span class="sub num">≈ ${mins} min · ≈ ${nr(kcal)} kcal</span></div></div>`+
+    (warm.length?`<div class="card"><div class="label">Încălzire</div>${warm.map(row).join('')}</div>`:'')+
+    `<div class="card"><div class="label">Antrenament</div>${main.map(row).join('')}<small class="sub" style="display:block;margin-top:8px">Pauză de un minut între serii. Dacă simți durere, oprește-te.</small></div>`+
+    (w.finished?`<div class="card" style="text-align:center"><b>Antrenament terminat. Bravo!</b><br><button class="reset" id="wkUndo" type="button" style="margin-top:8px">Anulează antrenamentul</button></div>`
+      :`<button class="btn primary" id="wkFinish" type="button" ${left?'disabled':''}>${left?`Mai ai de bifat: ${left===1?'1 exercițiu':left+' exerciții'}`:'Termină antrenamentul'}</button>`);
+  body.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{if(w.finished)return;w.done[b.dataset.t]=!w.done[b.dataset.t];saveX();renderWk()});
+  body.querySelectorAll('[data-o]').forEach(b=>b.onclick=()=>{wkOpen=wkOpen===b.dataset.o?null:b.dataset.o;renderWk()});
+  body.querySelectorAll('[data-min]').forEach(i=>i.onchange=()=>{const v=Math.round(numOf(i));if(v>0&&v<=600&&!w.finished){w.mins[i.dataset.min]=v;saveX();renderWk()}else i.value=wkItems(w).find(x=>x.id===i.dataset.min).min});
+  if(!w.finished&&!left)$('#wkFinish').onclick=()=>finishWk();
+  if(w.finished)$('#wkUndo').onclick=()=>undoWk();
+}
+function finishWk(){
+  const w=wkState(),td=w.d,D=XS.days[td]=XS.days[td]||{},st=WK[w.style],add={};let met60=0;
+  wkItems(w).forEach(it=>{const mv=MOVES[it.m];
+    if(mv.k&&!it.warm){const ex=EX.find(e=>e.k===mv.k),v=ex.u==='min'?moveMin(it):it.s*it.r;D[mv.k]=(D[mv.k]||0)+v;add[mv.k]=(add[mv.k]||0)+v}
+    else met60+=mv.met*3.5/200*moveMin(it)});
+  D.sessions=(D.sessions||[]).concat({name:st.n,eff:EFFORTS[w.eff],met60,add});
+  D.doneSession=true;w.finished=true;saveX();renderEx();renderWk();
+  if($('#qov').hidden)toast('Antrenament salvat');
+}
+function undoWk(){
+  const w=wkState(),D=XS.days[w.d]||{},s=(D.sessions||[]).pop();
+  if(s)Object.entries(s.add).forEach(([k,v])=>{D[k]=Math.max(0,(D[k]||0)-v);if(!D[k])delete D[k]});
+  if(!(D.sessions||[]).length){delete D.sessions;delete D.doneSession}
+  w.finished=false;saveX();renderEx();renderWk();toast('Antrenament anulat');
+}
+$('#todayPick').onclick=()=>document.querySelector('.tab[data-v=plan]').click();
 
 // Profil: metabolism Mifflin-St Jeor, necesar = metabolism × activitate; 7.700 kcal ≈ 1 kg de grăsime
 const PKEY='glowup.profile.v1', KCAL_KG=7700;
@@ -1200,7 +1399,7 @@ $('#profEdit').onclick=openOnb;
 
 $('#nudgeGo').onclick=()=>{$('#exList').scrollIntoView({behavior:'smooth',block:'start'})};
 setInterval(()=>{if(!document.hidden)renderEx()},60000);
-exReady=true;renderEx();
+exReady=true;renderEx();renderWk();
 if(PROF)showIntro();else openOnb();
 
 // Provocări: le creezi tu, le bifezi zi de zi; cele cu exerciții se bifează singure când atingi numărul din jurnal
