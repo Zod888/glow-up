@@ -429,7 +429,7 @@ input[type=date]{-webkit-appearance:none;appearance:none;min-height:44px}
         </div>
       </div>
 
-      <button class="task" id="todayPick" type="button"><span class="t"><b id="todayPickT">Ce faci azi?</b><small id="todayPickS">Forță, sală, yoga, plimbare sau alergare</small></span><span class="pts">›</span></button>
+      <button class="task" id="todayPick" type="button"><span class="t"><b id="todayPickT">Ce faci azi?</b><small id="todayPickS">Forță, sală, yoga, pilates, plimbare sau alergare</small></span><span class="pts">›</span></button>
 
       <div class="card tip">
         <div class="ai">Glo</div>
@@ -1166,7 +1166,7 @@ function showIntro(){
   const st=xpState(),T=XS.days[td]||{};
   qSteps.unshift({kicker:'MISIUNE NOUĂ',title:'Misiunea zilnică',btn:'Accept',
     body:EX.map(e=>`<div class="qline"><span>${e.n}</span><span class="num">${amtTxt(e,T[e.k]||0)} / ${amtTxt(e,XS.targets[e.k])}</span></div>`).join('')+
-      `<p class="qnote">Termen: azi, până la miezul nopții.<br>O poți înlocui cu un antrenament ales în Plan: forță, sală, yoga, plimbare sau alergare.<br>Recompensă: +100 XP și bonus de serie +${Math.min(st.prev+1,7)*10} XP${st.prev?` (ești la ${st.prev} ${st.prev===1?'zi':'zile'} la rând)`:''}.<br>Ești la nivelul ${st.lvl} (${titleOf(st.lvl)}).</p>`,
+      `<p class="qnote">Termen: azi, până la miezul nopții.<br>O poți înlocui cu un antrenament ales în Plan: forță, sală, yoga, pilates, plimbare sau alergare.<br>Recompensă: +100 XP și bonus de serie +${Math.min(st.prev+1,7)*10} XP${st.prev?` (ești la ${st.prev} ${st.prev===1?'zi':'zile'} la rând)`:''}.<br>Ești la nivelul ${st.lvl} (${titleOf(st.lvl)}).</p>`,
     onDone:()=>{XS.questSeen=td;saveX()}});
   if($('#qov').hidden)nextStep();
 }
@@ -1323,6 +1323,10 @@ const WK={
     1:[{m:'child',s:1,sec:120},{m:'dog',s:2,sec:30},{m:'cobra',s:2,sec:30},{m:'tree',s:2,sec:30},{m:'child',s:1,sec:60}],
     2:[{m:'dog',s:3,sec:45},{m:'cobra',s:3,sec:30},{m:'warrior',s:2,sec:45},{m:'tree',s:2,sec:45},{m:'bridge',s:2,sec:30},{m:'child',s:1,sec:120}],
     3:[{m:'dog',s:4,sec:60},{m:'warrior',s:4,sec:60},{m:'cobra',s:3,sec:45},{m:'tree',s:3,sec:60},{m:'plank',s:3,sec:45},{m:'bridge',s:3,sec:45},{m:'child',s:1,sec:180}]}},
+  pilates:{n:'Pilates',warm:[{m:'cat',s:1,sec:60},{m:'circles',s:1,sec:30},{m:'spine',s:1,r:6}],main:{
+    1:[{m:'hundred',s:1,sec:60},{m:'bridge',s:2,r:10},{m:'singleleg',s:2,r:10},{m:'clam',s:2,r:12},{m:'legcircles',s:2,sec:30},{m:'child',s:1,sec:60}],
+    2:[{m:'hundred',s:1,sec:90},{m:'rollup',s:2,r:6},{m:'singleleg',s:3,r:12},{m:'bridge',s:3,r:12},{m:'sideleg',s:3,r:12},{m:'clam',s:3,r:15},{m:'birddog',s:3,r:10},{m:'swan',s:2,r:8},{m:'child',s:1,sec:60}],
+    3:[{m:'hundred',s:2,sec:90},{m:'rollup',s:3,r:8},{m:'teaser',s:3,r:5},{m:'singleleg',s:4,r:16},{m:'plank',s:3,sec:45},{m:'bridge',s:4,r:15},{m:'sideleg',s:4,r:15},{m:'kick',s:4,r:15},{m:'clam',s:3,r:20},{m:'birddog',s:3,r:12},{m:'swan',s:3,r:8},{m:'child',s:1,sec:90}]}},
   walk:{n:'Plimbare',warm:[],main:{1:[{m:'walk',min:20}],2:[{m:'walk',min:40}],3:[{m:'walk',min:60}]}},
   run:{n:'Alergare',warm:[{m:'march',s:1,sec:120},{m:'circles',s:1,sec:30},{m:'fold',s:1,sec:30}],main:{1:[{m:'run',min:15}],2:[{m:'run',min:25}],3:[{m:'run',min:40}]}},
   gym:{n:'Sală'},
@@ -1352,16 +1356,32 @@ Object.assign(MOVES,{
   rdl:{n:'Îndreptări românești',d:2100,met:6,rate:16,tool:{kind:'bar'},how:['Genunchii puțin îndoiți, bara lângă coapse.','Împinge șoldurile în spate și coboară bara până sub genunchi.','Urcă strângând fesierii, cu spatele drept.'],warn:'Oprește-te dacă spatele se rotunjește.',poses:[P([50,16],[50,28],[50,56],[50,42],[50,60],[50,74],[50,92]),P([70,42],[62,50],[38,54],[62,62],[62,74],[46,72],[44,92])]},
   calf:{n:'Ridicări pe vârfuri',d:1300,met:3.5,rate:30,tool:{kind:'db'},how:['Stai drept, cu ganterele pe lângă corp.','Ridică-te pe vârfuri cât poți de sus.','Coboară încet, cu călcâiele spre sol.'],poses:[P([50,16],[50,28],[50,56],[52,42],[54,58],[50,74],[50,92]),P([50,10],[50,22],[50,50],[52,36],[54,52],[50,68],[50,88])]},
 });
+// Pilates: pe saltea, cu mișcări lente și controlate
+const ALLFOURS={e2:[72,76],w2:[72,90],k2:[30,90],f2:[14,90]};
+const SIDE=[[16,80],[26,84],[52,84],[26,90],[16,90]];
+Object.assign(MOVES,{
+  hundred:{n:'Suta',d:600,met:3.5,how:['Întinsă pe spate, genunchii la 90°, capul și umerii ridicați.','Mișcă brațele întinse în sus și în jos, în ritm scurt.','Inspiră pe 5 mișcări, expiră pe 5. Dacă te doare gâtul, lasă capul jos.'],poses:[P([20,76],[30,82],[54,86],[42,84],[52,80],[66,70],[78,72]),P([20,76],[30,82],[54,86],[42,86],[52,87],[66,70],[78,72])]},
+  rollup:{n:'Rulare în sus',d:3200,met:3.5,rate:10,how:['Întinsă pe spate, brațele deasupra capului.','Ridică-te vertebră cu vertebră, până te apleci spre vârfuri.','Coboară la fel de încet. Poți îndoi genunchii.'],poses:[P([14,84],[24,86],[52,86],[14,84],[4,80],[68,86],[84,88]),P([60,50],[54,58],[44,84],[66,62],[78,70],[62,86],[80,88],{b:[46,70]})]},
+  singleleg:{n:'Întinderi cu un picior',d:1000,met:3.5,rate:30,how:['Întinsă pe spate, capul și umerii ridicați.','Adu un genunchi spre piept și întinde celălalt picior.','Schimbă picioarele controlat, cu abdomenul strâns.'],poses:[P([20,76],[30,82],[54,86],[44,76],[56,68],[60,66],[68,82],{k2:[72,78],f2:[88,72]}),P([20,76],[30,82],[54,86],[44,76],[56,68],[72,78],[88,72],{k2:[60,66],f2:[68,82]})]},
+  swan:{n:'Lebăda',d:2800,met:3,rate:12,how:['Întinsă pe burtă, palmele sub umeri.','Ridică ușor pieptul, lungind coloana.','Coboară încet. Fesele rămân relaxate, gâtul lung.'],poses:[P([78,82],[68,86],[42,88],[74,88],[78,90],[26,88],[12,88]),P([74,60],[66,68],[42,88],[72,80],[78,90],[26,88],[12,88])]},
+  legcircles:{n:'Cercuri cu piciorul',d:800,met:3,how:['Întinsă pe spate, un picior ridicat spre tavan.','Desenează cercuri mici cu piciorul, cu bazinul nemișcat.','Schimbă sensul, apoi piciorul.'],poses:[P([14,84],[24,86],[50,88],[34,88],[44,90],[54,68],[58,48],{k2:[66,88],f2:[84,88]}),P([14,84],[24,86],[50,88],[34,88],[44,90],[60,70],[70,54],{k2:[66,88],f2:[84,88]}),P([14,84],[24,86],[50,88],[34,88],[44,90],[60,74],[74,64],{k2:[66,88],f2:[84,88]}),P([14,84],[24,86],[50,88],[34,88],[44,90],[52,72],[54,54],{k2:[66,88],f2:[84,88]})]},
+  sideleg:{n:'Ridicări laterale de picior',d:1600,met:3,rate:20,how:['Întinsă pe o parte, corpul într-o linie dreaptă.','Ridică piciorul de sus, cu vârful spre înainte.','Coboară controlat. Schimbă partea.'],poses:[P(...SIDE,[68,80],[84,80],{k2:[68,86],f2:[84,88]}),P(...SIDE,[68,68],[84,58],{k2:[68,86],f2:[84,88]})]},
+  clam:{n:'Scoica',d:1600,met:3,rate:20,how:['Întinsă pe o parte, genunchii îndoiți, călcâiele lipite.','Deschide genunchiul de sus, fără să rotești bazinul.','Închide încet. Schimbă partea.'],poses:[P(...SIDE,[68,80],[56,90],{k2:[68,86],f2:[56,90]}),P(...SIDE,[66,62],[56,90],{k2:[68,86],f2:[56,90]})]},
+  birddog:{n:'Câine-pasăre',d:2200,met:3,rate:20,how:['În patru labe, spatele drept.','Întinde un braț în față și piciorul opus în spate.','Revino controlat și schimbă partea.'],poses:[P([82,54],[72,62],[32,66],[72,76],[72,90],[30,90],[14,90],ALLFOURS),P([82,54],[72,62],[32,64],[84,58],[96,56],[16,62],[4,62],ALLFOURS)]},
+  kick:{n:'Ridicări de picior în patru labe',d:1500,met:3,rate:24,how:['În patru labe, abdomenul strâns.','Împinge un călcâi în spate și în sus, strângând fesierii.','Coboară fără să arcuiești spatele. Schimbă piciorul.'],poses:[P([82,54],[72,62],[32,66],[72,76],[72,90],[30,90],[14,90],ALLFOURS),P([82,54],[72,62],[32,66],[72,76],[72,90],[18,60],[6,46],ALLFOURS)]},
+  spine:{n:'Întinderea coloanei',d:3000,met:2.5,rate:12,how:['Așezată, picioarele întinse și depărtate.','Rotunjește spatele și întinde-te în față.','Revino vertebră cu vertebră, cu spatele lung.'],poses:[P([42,40],[42,52],[42,84],[56,54],[70,54],[62,86],[82,88]),P([64,62],[56,66],[42,84],[68,72],[84,76],[62,86],[82,88],{b:[46,74]})]},
+  teaser:{n:'Poziția V',d:3200,met:4,rate:10,how:['Întinsă pe spate, cu picioarele ridicate.','Ridică trunchiul și picioarele până formezi litera V.','Coboară încet. Exercițiu avansat: poți îndoi genunchii.'],warn:'Oprește-te dacă simți spatele.',poses:[P([14,84],[24,86],[50,88],[36,84],[46,82],[66,88],[84,88]),P([36,40],[40,52],[50,86],[52,46],[66,40],[66,70],[80,52])]},
+});
 // Grupe de mușchi: exercițiile sunt în ordinea recomandării; primele 3 se adaugă automat când alegi grupa
 const MUSCLES={
   chest:{n:'Piept',ids:['bench','dbbench','sincline','cfly','sbench','push']},
-  back:{n:'Spate',ids:['cpull','brow','crow','dbrow','deadlift','superman']},
+  back:{n:'Spate',ids:['cpull','brow','crow','dbrow','deadlift','superman','swan','birddog']},
   shoulders:{n:'Umeri',ids:['dbpress','latraise','ohp','facepull']},
   biceps:{n:'Biceps',ids:['bcurl','curl','ccurl']},
   triceps:{n:'Triceps',ids:['ctri','skull','dips']},
-  abs:{n:'Abdomen',ids:['crunch','plank','legraise','ccrunch','climbers']},
+  abs:{n:'Abdomen',ids:['crunch','plank','legraise','ccrunch','climbers','hundred','rollup','singleleg','teaser']},
   legs:{n:'Picioare',ids:['bsquat','ssquat','goblet','dblunge','rdl','csquat','calf','squat']},
-  glutes:{n:'Fese',ids:['hipthrust','rdl','bridge','lunge','slunge']},
+  glutes:{n:'Fese',ids:['hipthrust','rdl','bridge','lunge','slunge','clam','kick','sideleg']},
 };
 const groupsOf=id=>Object.keys(MUSCLES).filter(g=>MUSCLES[g].ids.includes(id));
 // Program pe săptămână: d = ziua (1 luni … 7 duminică); fiecare variantă lucrează toate cele 8 grupe
@@ -1484,11 +1504,11 @@ function renderWk(){
   $('#wkEquip').querySelectorAll('.opt').forEach(b=>b.onclick=()=>{w.equip=b.dataset.k;w.done={};w.mins={};w.finished=false;wkOpen=null;saveX();renderWk()});
   const pick=$('#todayPickT');
   const body=$('#wkBody');
-  if(!w.style){body.innerHTML='';pick.textContent='Ce faci azi?';$('#todayPickS').textContent='Forță, sală, yoga, plimbare sau alergare';return}
+  if(!w.style){body.innerHTML='';pick.textContent='Ce faci azi?';$('#todayPickS').textContent='Forță, sală, yoga, pilates, plimbare sau alergare';return}
   const gymHead=w.style==='gym'?gymHtml(w):'';
   if(w.style==='gym'&&!wkDef(w)){body.innerHTML=gymHead;bindGym(w);pick.textContent='Azi: Sală';$('#todayPickS').textContent=w.gymMode==='muscle'?'Alege grupa de mușchi':'Zi de pauză';return}
   const items=wkItems(w),kg=WSTATE.now,st=wkDef(w);
-  const mins=Math.round(items.reduce((a,i)=>a+moveMin(i),0)+(w.style==='force'||w.style==='yoga'||w.style==='gym'?items.filter(i=>!i.warm).reduce((a,i)=>a+(i.s||1)-1,0):0));
+  const mins=Math.round(items.reduce((a,i)=>a+moveMin(i),0)+(w.style==='force'||w.style==='yoga'||w.style==='gym'||w.style==='pilates'?items.filter(i=>!i.warm).reduce((a,i)=>a+(i.s||1)-1,0):0));
   const kcal=items.reduce((a,i)=>a+MOVES[i.m].met*3.5*kg/200*moveMin(i),0);
   const main=items.filter(i=>!i.warm),left=main.filter(i=>!w.done[i.id]).length;
   pick.textContent=`Azi: ${st.n}, ${EFFORTS[w.eff].toLowerCase()}`;
@@ -1504,7 +1524,7 @@ function renderWk(){
   const warm=items.filter(i=>i.warm);
   body.innerHTML=gymHead+`<div class="card"><div class="wksum"><b>${st.n} · ${EFFORTS[w.eff]}</b><span class="sub num">≈ ${mins} min · ≈ ${nr(kcal)} kcal</span></div></div>`+
     (warm.length?`<div class="card"><div class="label">Încălzire</div>${warm.map(row).join('')}</div>`:'')+
-    `<div class="card"><div class="label">Antrenament</div>${main.map(row).join('')}<small class="sub" style="display:block;margin-top:8px">Pauză de un minut între serii. ${w.style==='gym'?'Alege o greutate cu care termini seriile cu tehnică bună. ':''}Dacă simți durere, oprește-te.</small></div>`+
+    `<div class="card"><div class="label">Antrenament</div>${main.map(row).join('')}<small class="sub" style="display:block;margin-top:8px">Pauză de un minut între serii. ${w.style==='gym'?'Alege o greutate cu care termini seriile cu tehnică bună. ':''}${w.style==='pilates'?'Lucrează abdomenul, fesele, coapsele și postura. Mișcă-te lent și respiră constant. Dacă ești însărcinată sau ai născut recent, întreabă întâi medicul. ':''}Dacă simți durere, oprește-te.</small></div>`+
     (w.finished?`<div class="card" style="text-align:center"><b>Antrenament terminat. Bravo!</b><br><button class="reset" id="wkUndo" type="button" style="margin-top:8px">Anulează antrenamentul</button></div>`
       :`<button class="btn primary" id="wkFinish" type="button" ${left?'disabled':''}>${left?`Mai ai de bifat: ${left===1?'1 exercițiu':left+' exerciții'}`:'Termină antrenamentul'}</button>`);
   body.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{if(w.finished)return;w.done[b.dataset.t]=!w.done[b.dataset.t];saveX();renderWk()});
