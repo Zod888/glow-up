@@ -223,6 +223,7 @@ a.btn{text-decoration:none}
 .mvinfo small{color:var(--muted);display:block}
 .mvinfo em{font-style:normal;color:var(--glow);font-size:12px;font-weight:800}
 .mvtick:focus-visible,.mvinfo:focus-visible{outline:3px solid var(--glow);outline-offset:2px}
+.mvbig.wide{aspect-ratio:100/66;max-width:320px}
 .mvopen{display:flex;flex-direction:column;gap:8px;margin-top:10px}
 .mvbig{width:100%;max-width:220px;aspect-ratio:1;align-self:center;border-radius:18px;background:var(--soft);display:block}
 .mvopen ol{margin:0;padding-left:20px;line-height:1.5}
@@ -1273,27 +1274,52 @@ Object.assign(MOVES,{
   csquat:{n:'Genuflexiuni la cablu',d:1800,met:5,rate:20,tool:{pulley:[78,88]},how:['Scripetele jos, mânerul ținut la piept, cu un pas în spate.','Coboară ca pe un scaun, cu pieptul sus.','Urcă împingând prin călcâie.'],poses:[P([50,16],[50,28],[50,56],[58,44],[64,38],[52,74],[46,92]),P([55,36],[52,47],[38,70],[62,58],[68,54],[58,72],[46,92])]},
 });
 const POSE_KEYS=['h','s','b','p','e','w','k','f','e2','w2','k2','f2'];
+const fullPose=q=>({...q,b:q.b||[(q.s[0]+q.p[0])/2,(q.s[1]+q.p[1])/2],e2:q.e2||q.e,w2:q.w2||q.w,k2:q.k2||q.k,f2:q.f2||q.f});
 function poseAt(mv,t){
-  const n=mv.poses.length,u=(t/mv.d)%n,i=Math.floor(u),raw=u-i,f=(1-Math.cos(raw*Math.PI))/2;
-  const full=q=>({...q,b:q.b||[(q.s[0]+q.p[0])/2,(q.s[1]+q.p[1])/2],e2:q.e2||q.e,w2:q.w2||q.w,k2:q.k2||q.k,f2:q.f2||q.f});
+  const n=mv.poses.length,u=(t/mv.d)%n,i=Math.floor(u),r=Math.min(1,(u-i)/(1-(mv.hold||0))),f=mv.lin?r:(1-Math.cos(r*Math.PI))/2;
+  const full=fullPose;
   const a=full(mv.poses[i]),c=full(mv.poses[(i+1)%n]),o={};
   POSE_KEYS.forEach(k=>o[k]=[a[k][0]+(c[k][0]-a[k][0])*f,a[k][1]+(c[k][1]-a[k][1])*f]);
   return o;
 }
+// Vederea mare la Pilates: poziția finală transparentă, săgeți de mișcare și textul fazei
+function matExtras(mv){
+  const F=mv.poses.map(fullPose),xy=a=>a.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+  const head=(a,b,sz=4)=>{const dx=a[0]-b[0],dy=a[1]-b[1],L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L;
+    return `<polygon points="${xy([a,[a[0]-ux*sz-uy*sz*.6,a[1]-uy*sz+ux*sz*.6],[a[0]-ux*sz+uy*sz*.6,a[1]-uy*sz-ux*sz*.6]])}" fill="var(--glow)"/>`};
+  const cut=(a,b,d)=>{const L=Math.hypot(b[0]-a[0],b[1]-a[1])||1,k=Math.min(d,L/3)/L;return [a[0]+(b[0]-a[0])*k,a[1]+(b[1]-a[1])*k]};
+  let s='';
+  const g=mv.ghost??1;
+  if(g>=0){const q=F[g];
+    s+=`<g fill="none" stroke="var(--ink)" stroke-linecap="round" stroke-linejoin="round" stroke-width="5" opacity=".13"><polyline points="${xy([q.s,q.e2,q.w2])}"/><polyline points="${xy([q.p,q.k2,q.f2])}"/><polyline points="${xy([q.s,q.b,q.p])}"/><polyline points="${xy([q.s,q.e,q.w])}"/><polyline points="${xy([q.p,q.k,q.f])}"/></g><circle cx="${q.h[0]}" cy="${q.h[1]}" r="6.5" fill="var(--ink)" opacity=".13"/>`}
+  (mv.arr||[]).forEach(a=>{
+    if(a.loop){const P0=F.map(q=>q[a.j]),c=[P0.reduce((x,p)=>x+p[0],0)/P0.length,P0.reduce((x,p)=>x+p[1],0)/P0.length];
+      const R=P0.map(p=>[c[0]+(p[0]-c[0])*1.7,c[1]+(p[1]-c[1])*1.7]);
+      s+=`<polyline points="${xy([...R.slice(0,-1)])}" fill="none" stroke="var(--glow)" stroke-width="1.8" stroke-dasharray="3 2" stroke-linecap="round"/>`+head(R[R.length-2],R[R.length-3]);return}
+    const pts=(a.path||[0,1]).map(i=>F[i][a.j]);
+    if(pts.length<2)return;
+    pts[0]=cut(pts[0],pts[1],4);const n=pts.length;pts[n-1]=cut(pts[n-1],pts[n-2],4);
+    s+=`<polyline points="${xy(pts)}" fill="none" stroke="var(--glow)" stroke-width="1.8" stroke-dasharray="3 2" stroke-linecap="round" stroke-linejoin="round"/>`+head(pts[n-1],pts[n-2])+(a.both?head(pts[0],pts[1]):'');
+  });
+  if(mv.cap)s+=`<text class="cap" x="50" y="37" text-anchor="middle" font-size="4.6" font-weight="600" fill="var(--muted)">${Array.isArray(mv.cap)?mv.cap[0]:mv.cap}</text>`;
+  return s;
+}
 function drawFig(svg,t){
   const mv=MOVES[svg.dataset.ex];if(!mv)return;
   if(!svg._parts){
-    svg.setAttribute('viewBox','0 0 100 100');
-    const T=mv.tool||{};
-    svg.innerHTML=`<line x1="4" x2="96" y1="94" y2="94" stroke="var(--line)" stroke-width="2" stroke-linecap="round"/>`+
+    svg.setAttribute('viewBox',mv.mat?'0 30 100 66':'0 0 100 100');
+    const T=mv.tool||{},big=mv.mat&&svg.classList.contains('mvbig');
+    svg.innerHTML=(mv.mat?`<rect x="3" y="89" width="94" height="4" rx="2" fill="var(--glow)" opacity=".25"/>`:`<line x1="4" x2="96" y1="94" y2="94" stroke="var(--line)" stroke-width="2" stroke-linecap="round"/>`)+
+      (big?matExtras(mv):'')+
       (T.rail!=null?`<line x1="${T.rail}" x2="${T.rail}" y1="3" y2="94" stroke="var(--muted)" stroke-width="2" opacity=".6"/>`:'')+
       (T.bench?`<g stroke="var(--muted)" stroke-linecap="round" opacity=".7"><line x1="${T.bench[0][0]}" y1="${T.bench[0][1]}" x2="${T.bench[1][0]}" y2="${T.bench[1][1]}" stroke-width="6"/><line x1="${(T.bench[0][0]+T.bench[1][0])/2}" y1="${(T.bench[0][1]+T.bench[1][1])/2}" x2="${(T.bench[0][0]+T.bench[1][0])/2}" y2="94" stroke-width="3"/></g>`:'')+
       (T.pulley?`<g stroke="var(--muted)" opacity=".7"><line x1="${T.pulley[0]}" y1="${T.pulley[1]}" x2="${T.pulley[0]}" y2="94" stroke-width="2"/><circle cx="${T.pulley[0]}" cy="${T.pulley[1]}" r="3" fill="var(--muted)"/></g><line class="cb" x1="${T.pulley[0]}" y1="${T.pulley[1]}" stroke="var(--glow)" stroke-width="1.5"/>`:'')+
       `<g fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="5"><polyline class="b1" stroke="var(--muted)" opacity=".55"/><polyline class="b2" stroke="var(--muted)" opacity=".55"/><polyline class="t" stroke="var(--ink)"/><polyline class="f1" stroke="var(--ink)"/><polyline class="f2" stroke="var(--ink)"/></g><circle class="hd" r="6.5" fill="var(--glow)"/>`+
       (T.kind==='bar'?`<circle class="dsc" r="8" fill="var(--glow2)" stroke="var(--ink)" stroke-width="2"/>`:'')+
       (T.kind==='db'?`<g class="dbb" stroke="var(--ink)" stroke-linecap="round"><line x1="-6" x2="6" y1="0" y2="0" stroke-width="2.5"/><line x1="-6" x2="-6" y1="-4" y2="4" stroke-width="4"/><line x1="6" x2="6" y1="-4" y2="4" stroke-width="4"/></g>`:'');
-    svg._parts={b1:svg.querySelector('.b1'),b2:svg.querySelector('.b2'),t:svg.querySelector('.t'),f1:svg.querySelector('.f1'),f2:svg.querySelector('.f2'),hd:svg.querySelector('.hd'),dsc:svg.querySelector('.dsc'),dbb:svg.querySelector('.dbb'),cb:svg.querySelector('.cb')};
+    svg._parts={b1:svg.querySelector('.b1'),b2:svg.querySelector('.b2'),t:svg.querySelector('.t'),f1:svg.querySelector('.f1'),f2:svg.querySelector('.f2'),hd:svg.querySelector('.hd'),dsc:svg.querySelector('.dsc'),dbb:svg.querySelector('.dbb'),cb:svg.querySelector('.cb'),cap:svg.querySelector('.cap')};
   }
+  if(svg._parts.cap&&Array.isArray(mv.cap)){const s=mv.cap[Math.floor((t/mv.d)%mv.poses.length)%mv.cap.length];if(svg._parts.cap.textContent!==s)svg._parts.cap.textContent=s}
   const q=poseAt(mv,t),pts=(...a)=>a.map(x=>x[0].toFixed(1)+','+x[1].toFixed(1)).join(' '),z=svg._parts;
   z.b1.setAttribute('points',pts(q.s,q.e2,q.w2));z.b2.setAttribute('points',pts(q.p,q.k2,q.f2));
   z.t.setAttribute('points',pts(q.s,q.b,q.p));z.f1.setAttribute('points',pts(q.s,q.e,q.w));z.f2.setAttribute('points',pts(q.p,q.k,q.f));
@@ -1357,20 +1383,36 @@ Object.assign(MOVES,{
   calf:{n:'Ridicări pe vârfuri',d:1300,met:3.5,rate:30,tool:{kind:'db'},how:['Stai drept, cu ganterele pe lângă corp.','Ridică-te pe vârfuri cât poți de sus.','Coboară încet, cu călcâiele spre sol.'],poses:[P([50,16],[50,28],[50,56],[52,42],[54,58],[50,74],[50,92]),P([50,10],[50,22],[50,50],[52,36],[54,52],[50,68],[50,88])]},
 });
 // Pilates: pe saltea, cu mișcări lente și controlate
-const ALLFOURS={e2:[72,76],w2:[72,90],k2:[30,90],f2:[14,90]};
-const SIDE=[[16,80],[26,84],[52,84],[26,90],[16,90]];
+// mat = desenat pe saltea, mai mare; hold = cât din fiecare segment stă pe loc; cap = text pe fiecare segment;
+// arr = săgeți pentru încheieturile care se mișcă (both = dus-întors, loop = cerc); în vederea mare apare și poziția finală, transparent
+const SIDEB={h:[17,79],s:[26,84],p:[54,83],e:[34,78],w:[38,87],e2:[16,87],w2:[5,87]};
+const SP=(k,f,k2,f2)=>({...SIDEB,k,f,k2,f2});
+const FOURS=(o={})=>P([79,66],[70,66],[40,67],[70,76],[70,86],[40,86],[22,87],o);
+const LCIRC=[...Array(8)].map((_,i)=>{const a=i/8*2*Math.PI,f=[56+7*Math.sin(a),54-7*Math.cos(a)];return P([14,83],[23,86],[50,86],[34,87],[44,87],[50+(f[0]-50)/2,86+(f[1]-86)/2],f,{k2:[68,86],f2:[86,86]})});
 Object.assign(MOVES,{
-  hundred:{n:'Suta',d:600,met:3.5,how:['Întinsă pe spate, genunchii la 90°, capul și umerii ridicați.','Mișcă brațele întinse în sus și în jos, în ritm scurt.','Inspiră pe 5 mișcări, expiră pe 5. Dacă te doare gâtul, lasă capul jos.'],poses:[P([20,76],[30,82],[54,86],[42,84],[52,80],[66,70],[78,72]),P([20,76],[30,82],[54,86],[42,86],[52,87],[66,70],[78,72])]},
-  rollup:{n:'Rulare în sus',d:3200,met:3.5,rate:10,how:['Întinsă pe spate, brațele deasupra capului.','Ridică-te vertebră cu vertebră, până te apleci spre vârfuri.','Coboară la fel de încet. Poți îndoi genunchii.'],poses:[P([14,84],[24,86],[52,86],[14,84],[4,80],[68,86],[84,88]),P([60,50],[54,58],[44,84],[66,62],[78,70],[62,86],[80,88],{b:[46,70]})]},
-  singleleg:{n:'Întinderi cu un picior',d:1000,met:3.5,rate:30,how:['Întinsă pe spate, capul și umerii ridicați.','Adu un genunchi spre piept și întinde celălalt picior.','Schimbă picioarele controlat, cu abdomenul strâns.'],poses:[P([20,76],[30,82],[54,86],[44,76],[56,68],[60,66],[68,82],{k2:[72,78],f2:[88,72]}),P([20,76],[30,82],[54,86],[44,76],[56,68],[72,78],[88,72],{k2:[60,66],f2:[68,82]})]},
-  swan:{n:'Lebăda',d:2800,met:3,rate:12,how:['Întinsă pe burtă, palmele sub umeri.','Ridică ușor pieptul, lungind coloana.','Coboară încet. Fesele rămân relaxate, gâtul lung.'],poses:[P([78,82],[68,86],[42,88],[74,88],[78,90],[26,88],[12,88]),P([74,60],[66,68],[42,88],[72,80],[78,90],[26,88],[12,88])]},
-  legcircles:{n:'Cercuri cu piciorul',d:800,met:3,how:['Întinsă pe spate, un picior ridicat spre tavan.','Desenează cercuri mici cu piciorul, cu bazinul nemișcat.','Schimbă sensul, apoi piciorul.'],poses:[P([14,84],[24,86],[50,88],[34,88],[44,90],[54,68],[58,48],{k2:[66,88],f2:[84,88]}),P([14,84],[24,86],[50,88],[34,88],[44,90],[60,70],[70,54],{k2:[66,88],f2:[84,88]}),P([14,84],[24,86],[50,88],[34,88],[44,90],[60,74],[74,64],{k2:[66,88],f2:[84,88]}),P([14,84],[24,86],[50,88],[34,88],[44,90],[52,72],[54,54],{k2:[66,88],f2:[84,88]})]},
-  sideleg:{n:'Ridicări laterale de picior',d:1600,met:3,rate:20,how:['Întinsă pe o parte, corpul într-o linie dreaptă.','Ridică piciorul de sus, cu vârful spre înainte.','Coboară controlat. Schimbă partea.'],poses:[P(...SIDE,[68,80],[84,80],{k2:[68,86],f2:[84,88]}),P(...SIDE,[68,68],[84,58],{k2:[68,86],f2:[84,88]})]},
-  clam:{n:'Scoica',d:1600,met:3,rate:20,how:['Întinsă pe o parte, genunchii îndoiți, călcâiele lipite.','Deschide genunchiul de sus, fără să rotești bazinul.','Închide încet. Schimbă partea.'],poses:[P(...SIDE,[68,80],[56,90],{k2:[68,86],f2:[56,90]}),P(...SIDE,[66,62],[56,90],{k2:[68,86],f2:[56,90]})]},
-  birddog:{n:'Câine-pasăre',d:2200,met:3,rate:20,how:['În patru labe, spatele drept.','Întinde un braț în față și piciorul opus în spate.','Revino controlat și schimbă partea.'],poses:[P([82,54],[72,62],[32,66],[72,76],[72,90],[30,90],[14,90],ALLFOURS),P([82,54],[72,62],[32,64],[84,58],[96,56],[16,62],[4,62],ALLFOURS)]},
-  kick:{n:'Ridicări de picior în patru labe',d:1500,met:3,rate:24,how:['În patru labe, abdomenul strâns.','Împinge un călcâi în spate și în sus, strângând fesierii.','Coboară fără să arcuiești spatele. Schimbă piciorul.'],poses:[P([82,54],[72,62],[32,66],[72,76],[72,90],[30,90],[14,90],ALLFOURS),P([82,54],[72,62],[32,66],[72,76],[72,90],[18,60],[6,46],ALLFOURS)]},
-  spine:{n:'Întinderea coloanei',d:3000,met:2.5,rate:12,how:['Așezată, picioarele întinse și depărtate.','Rotunjește spatele și întinde-te în față.','Revino vertebră cu vertebră, cu spatele lung.'],poses:[P([42,40],[42,52],[42,84],[56,54],[70,54],[62,86],[82,88]),P([64,62],[56,66],[42,84],[68,72],[84,76],[62,86],[82,88],{b:[46,74]})]},
-  teaser:{n:'Poziția V',d:3200,met:4,rate:10,how:['Întinsă pe spate, cu picioarele ridicate.','Ridică trunchiul și picioarele până formezi litera V.','Coboară încet. Exercițiu avansat: poți îndoi genunchii.'],warn:'Oprește-te dacă simți spatele.',poses:[P([14,84],[24,86],[50,88],[36,84],[46,82],[66,88],[84,88]),P([36,40],[40,52],[50,86],[52,46],[66,40],[66,70],[80,52])]},
+  hundred:{n:'Suta',d:600,met:3.5,mat:1,cap:'Pompează brațele: inspiră 5, expiră 5',arr:[{j:'w',both:1}],how:['Întinsă pe spate, genunchii la 90°, capul și umerii ridicați.','Mișcă brațele întinse în sus și în jos, în ritm scurt.','Inspiră pe 5 mișcări, expiră pe 5. Dacă te doare gâtul, lasă capul jos.'],poses:[P([15,73],[23,80],[50,86],[35,78],[47,77],[56,68],[74,68],{b:[36,85]}),P([15,73],[23,80],[50,86],[35,82],[47,84],[56,68],[74,68],{b:[36,85]})]},
+  rollup:{n:'Rulare în sus',d:1600,hold:.3,ghost:2,met:3.5,rate:10,mat:1,cap:['Expiră: rulează în sus','Întinde-te spre vârfuri','Inspiră și începe să cobori','Coboară vertebră cu vertebră'],arr:[{j:'h',path:[0,1,2]}],how:['Întinsă pe spate, brațele deasupra capului.','Ridică-te vertebră cu vertebră, până te apleci spre vârfuri.','Coboară la fel de încet. Poți îndoi genunchii.'],poses:[
+    P([21,83],[30,86],[56,86],[18,85],[6,84],[74,86],[92,86]),
+    P([37,63],[41,71],[56,86],[52,72],[64,74],[74,86],[92,86],{b:[46,82]}),
+    P([82,74],[74,69],[56,86],[82,76],[92,80],[74,86],[92,86],{b:[62,74]}),
+    P([37,63],[41,71],[56,86],[52,72],[64,74],[74,86],[92,86],{b:[46,82]})]},
+  singleleg:{n:'Întinderi cu un picior',d:1000,hold:.3,met:3.5,rate:30,mat:1,cap:'Genunchi la piept, celălalt picior întins',arr:[{j:'f',both:1}],how:['Întinsă pe spate, capul și umerii ridicați.','Adu un genunchi spre piept și întinde celălalt picior.','Schimbă picioarele controlat, cu abdomenul strâns.'],poses:[
+    P([15,73],[23,80],[50,86],[34,74],[44,70],[44,69],[60,72],{b:[36,85],k2:[68,80],f2:[86,74]}),
+    P([15,73],[23,80],[50,86],[34,74],[44,70],[68,80],[86,74],{b:[36,85],k2:[44,69],f2:[60,72]})]},
+  swan:{n:'Lebăda',d:2800,hold:.35,met:3,rate:12,mat:1,cap:['Inspiră: ridică pieptul','Expiră: coboară'],arr:[{j:'h'}],how:['Întinsă pe burtă, palmele sub umeri.','Ridică ușor pieptul, lungind coloana.','Coboară încet. Fesele rămân relaxate, gâtul lung.'],poses:[
+    P([14,83],[24,86],[52,87],[33,78],[28,87],[70,87],[88,87],{b:[38,87]}),
+    P([19,62],[27,70],[52,87],[31,79],[28,87],[70,87],[88,87],{b:[38,81]})]},
+  legcircles:{n:'Cercuri cu piciorul',d:400,lin:1,met:3,mat:1,ghost:-1,cap:'Cercuri mici, bazinul nemișcat',arr:[{j:'f',loop:1}],how:['Întinsă pe spate, un picior ridicat spre tavan.','Desenează cercuri mici cu piciorul, cu bazinul nemișcat.','Schimbă sensul, apoi piciorul.'],poses:LCIRC},
+  sideleg:{n:'Ridicări laterale de picior',d:1600,hold:.3,met:3,rate:20,mat:1,cap:['Ridică piciorul de sus','Coboară controlat'],arr:[{j:'f'}],how:['Întinsă pe o parte, corpul într-o linie dreaptă.','Ridică piciorul de sus, cu vârful spre înainte.','Coboară controlat. Schimbă partea.'],poses:[SP([72,83],[90,84],[72,86],[90,87]),SP([71,74],[87,65],[72,86],[90,87])]},
+  clam:{n:'Scoica',d:1600,hold:.3,met:3,rate:20,mat:1,cap:['Deschide genunchiul, călcâiele lipite','Închide încet'],arr:[{j:'k'}],how:['Întinsă pe o parte, genunchii îndoiți, călcâiele lipite.','Deschide genunchiul de sus, fără să rotești bazinul.','Închide încet. Schimbă partea.'],poses:[SP([67,84],[57,86],[67,87],[57,88]),SP([62,70],[57,86],[67,87],[57,88])]},
+  birddog:{n:'Câine-pasăre',d:2200,hold:.35,met:3,rate:20,mat:1,cap:['Întinde brațul și piciorul opus','Revino, apoi schimbă partea'],arr:[{j:'w'},{j:'f2'}],how:['În patru labe, spatele drept.','Întinde un braț în față și piciorul opus în spate.','Revino controlat și schimbă partea.'],poses:[FOURS(),FOURS({e:[80,57],w:[92,52],e2:[70,76],w2:[70,86],k2:[22,65],f2:[4,63]})]},
+  kick:{n:'Ridicări de picior în patru labe',d:1500,hold:.3,met:3,rate:24,mat:1,cap:['Împinge călcâiul în spate și în sus','Coboară fără să arcuiești spatele'],arr:[{j:'f'}],how:['În patru labe, abdomenul strâns.','Împinge un călcâi în spate și în sus, strângând fesierii.','Coboară fără să arcuiești spatele. Schimbă piciorul.'],poses:[FOURS(),FOURS({k:[22,63],f:[6,57],k2:[40,86],f2:[22,87]})]},
+  spine:{n:'Întinderea coloanei',d:3000,hold:.35,met:2.5,rate:12,mat:1,cap:['Expiră: rotunjește spatele în față','Inspiră: revino vertebră cu vertebră'],arr:[{j:'h'}],how:['Așezată, picioarele întinse și depărtate.','Rotunjește spatele și întinde-te în față.','Revino vertebră cu vertebră, cu spatele lung.'],poses:[
+    P([34,50],[34,60],[34,86],[46,61],[58,61],[53,86],[72,86],{b:[34,73]}),
+    P([60,74],[52,68],[34,86],[63,72],[75,75],[53,86],[72,86],{b:[42,72]})]},
+  teaser:{n:'Poziția V',d:3200,hold:.35,met:4,rate:10,mat:1,cap:['Expiră: urcă în V','Inspiră: coboară încet'],arr:[{j:'h'},{j:'f'}],how:['Întinsă pe spate, cu picioarele ridicate.','Ridică trunchiul și picioarele până formezi litera V.','Coboară încet. Exercițiu avansat: poți îndoi genunchii.'],warn:'Oprește-te dacă simți spatele.',poses:[
+    P([16,83],[25,86],[48,86],[29,74],[33,62],[66,86],[84,86]),
+    P([31,55],[37,63],[48,86],[48,59],[60,54],[62,73],[76,60],{b:[40,76]})]},
 });
 // Grupe de mușchi: exercițiile sunt în ordinea recomandării; primele 3 se adaugă automat când alegi grupa
 const MUSCLES={
@@ -1520,7 +1562,7 @@ function renderWk(){
       <button type="button" class="mvinfo" data-o="${it.id}" aria-expanded="${open}"><b>${mv.n}</b><small class="num">${doseTxt(it)}</small><em>${open?'Ascunde':'Cum se face'}</em></button>
     </div>${it.min?`<label class="mvmin">Minute<input type="text" inputmode="numeric" data-min="${it.id}" value="${it.min}" autocomplete="off"></label>`:''}
     ${!it.warm&&liftable(it.m)?`<label class="mvmin">Kg<input type="text" inputmode="decimal" data-kg="${it.m}" value="${kgShown(w,it.m)}" autocomplete="off" placeholder="câte kg" aria-label="Kilograme la ${mv.n}"><span>${liftHint(it.m)}</span></label>`:''}
-    ${open?`<div class="mvopen"><svg class="mvbig" data-ex="${it.m}" role="img" aria-label="Animație: ${mv.n}"></svg><ol>${mv.how.map(h=>`<li>${h}</li>`).join('')}</ol>${mv.warn?`<p class="warn">${mv.warn}</p>`:''}</div>`:''}</div>`};
+    ${open?`<div class="mvopen"><svg class="mvbig${mv.mat?' wide':''}" data-ex="${it.m}" role="img" aria-label="Animație: ${mv.n}"></svg><ol>${mv.how.map(h=>`<li>${h}</li>`).join('')}</ol>${mv.warn?`<p class="warn">${mv.warn}</p>`:''}</div>`:''}</div>`};
   const warm=items.filter(i=>i.warm);
   body.innerHTML=gymHead+`<div class="card"><div class="wksum"><b>${st.n} · ${EFFORTS[w.eff]}</b><span class="sub num">≈ ${mins} min · ≈ ${nr(kcal)} kcal</span></div></div>`+
     (warm.length?`<div class="card"><div class="label">Încălzire</div>${warm.map(row).join('')}</div>`:'')+
